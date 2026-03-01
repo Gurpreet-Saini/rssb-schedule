@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Radha Soami Satsang Beas - Schedule Manager</title>
     
-    <!-- Favicon Added Here -->
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://z-cdn-media.chatglm.cn/files/67c8fd05-fa64-4434-a1f0-bc4a311df658.png?auth_key=1872345937-9056ff5c7ee548d3bf77a867f259c642-0-c2ecfc24bc11fef96b006a00f8b3ea87">
     
     <!-- Google Fonts -->
@@ -746,8 +746,8 @@
             <h2><i class="fas fa-user-tie"></i> Satsang Karta's</h2>
             <div class="simple-add-row">
                 <div class="form-group">
-                    <label>Add Name</label>
-                    <input type="text" id="skName" placeholder="e.g., JAIDEEP SHARMA">
+                    <label>Add Names (Comma Separated)</label>
+                    <input type="text" id="skName" placeholder="e.g., JAIDEEP SHARMA, RAKESH KUMAR">
                 </div>
                 <div class="form-group" style="min-width: 120px;">
                     <button class="btn-primary" onclick="addSK()" style="width:100%"><i class="fas fa-plus"></i> Add</button>
@@ -760,8 +760,8 @@
             <h2><i class="fas fa-users"></i> Pathi's</h2>
             <div class="simple-add-row">
                 <div class="form-group">
-                    <label>Add Name</label>
-                    <input type="text" id="pathiName" placeholder="e.g., MOHAN LAL">
+                    <label>Add Names (Comma Separated)</label>
+                    <input type="text" id="pathiName" placeholder="e.g., MOHAN LAL, RAMESH">
                 </div>
                 <div class="form-group" style="min-width: 120px;">
                     <button class="btn-primary" onclick="addPathi()" style="width:100%"><i class="fas fa-plus"></i> Add</button>
@@ -1049,7 +1049,12 @@
     }
 
     function clearAllData() {
-        if(confirm("Delete ALL data?")) { localStorage.removeItem('satsangData'); showToast("Reset.", "info"); setTimeout(() => location.reload(), 1000); }
+        if(confirm("Are you sure you want to delete ALL data (Places, SKs, Pathis, Schedule)?")) {
+            places = []; skList = []; pathiList = []; schedule = []; pathiRotationIndex = 0; editingIndex = -1;
+            saveToLocalStorage();
+            refreshUI();
+            showToast("All data has been erased.", "info");
+        }
     }
 
     function handleDateChange() { saveToLocalStorage(); refreshUI(); }
@@ -1091,22 +1096,36 @@
     function removePlace(id) { places = places.filter(p => p.id !== id); saveToLocalStorage(); refreshUI(); }
 
     function addSK() {
-        let val = document.getElementById('skName').value.toUpperCase().trim();
-        if(val) {
-            val = val.replace(/^VCD\s+|\s+VCD$/gi, '').trim(); if(val === "") val = "VCD";
-            if(!skList.includes(val)) { skList.push(val); saveToLocalStorage(); refreshUI(); document.getElementById('skName').value = ""; showToast("Added!"); }
-            else showToast("Exists.", "error");
-        }
+        let val = document.getElementById('skName').value;
+        let names = val.split(','); 
+        let addedCount = 0;
+        
+        names.forEach(n => {
+            let trimmed = n.trim().toUpperCase();
+            if(trimmed) {
+                trimmed = trimmed.replace(/^VCD\s+|\s+VCD$/gi, '').trim();
+                if(trimmed === "") trimmed = "VCD";
+                if(!skList.includes(trimmed)) { skList.push(trimmed); addedCount++; }
+            }
+        });
+        if(addedCount > 0) { saveToLocalStorage(); refreshUI(); document.getElementById('skName').value = ""; showToast(`${addedCount} SK(s) added!`); }
+        else showToast("No new names found.", "error");
     }
     function removeSK(name) { skList = skList.filter(s => s !== name); saveToLocalStorage(); refreshUI(); }
 
     function addPathi() {
-        let val = document.getElementById('pathiName').value.toUpperCase().trim();
-        if(val && !pathiList.includes(val)) { pathiList.push(val); saveToLocalStorage(); refreshUI(); document.getElementById('pathiName').value = ""; showToast("Added!"); }
+        let val = document.getElementById('pathiName').value;
+        let names = val.split(','); 
+        let addedCount = 0;
+        names.forEach(n => {
+            let trimmed = n.trim().toUpperCase();
+            if(trimmed && !pathiList.includes(trimmed)) { pathiList.push(trimmed); addedCount++; }
+        });
+        if(addedCount > 0) { saveToLocalStorage(); refreshUI(); document.getElementById('pathiName').value = ""; showToast(`${addedCount} Pathi(s) added!`); }
+        else showToast("No new names found.", "error");
     }
     function removePathi(name) { pathiList = pathiList.filter(p => p !== name); saveToLocalStorage(); refreshUI(); }
 
-    // UPDATED: Added Time to preview
     function refreshUI() {
         document.getElementById('placeList').innerHTML = places.map(p => 
             `<div class="badge place"><i class="fas fa-map-marker-alt"></i> <b>${p.name}</b> (${p.day} - ${p.time}) <span class="close-btn" onclick="removePlace(${p.id})">&times;</span></div>`
@@ -1119,9 +1138,10 @@
     // --- Schedule Logic ---
     function populateScheduleDropdowns() {
         const placeSelect = document.getElementById('schedulePlace'); const skSelect = document.getElementById('selSK');
-        placeSelect.innerHTML = `<option value="">-- Select --</option>` + places.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        placeSelect.innerHTML = `<option value="">-- Select Place --</option>` + 
+            places.map(p => `<option value="${p.id}">${p.name} (${p.day} - ${p.time})</option>`).join('');
         let sortedSK = [...skList].sort((a,b) => { if(a === 'VCD') return -1; if(b === 'VCD') return 1; return a.localeCompare(b); });
-        skSelect.innerHTML = `<option value="">-- Select --</option>` + sortedSK.map(s => `<option value="${s}">${s}</option>`).join('');
+        skSelect.innerHTML = `<option value="">-- Select SK --</option>` + sortedSK.map(s => `<option value="${s}">${s}</option>`).join('');
     }
 
     function updateDateList() {
@@ -1147,25 +1167,67 @@
     function handleSKChange() {
         const skSelect = document.getElementById('selSK'); const displayDiv = document.getElementById('autoPathiDisplay'); const selectedSK = skSelect.value;
         if (!selectedSK) { displayDiv.innerText = "Please select an SK."; return; }
-        displayDiv.innerHTML = selectedSK === 'VCD' ? `<span style="color: var(--danger);">VCD. No Pathis.</span>` : `<span style="color: var(--primary);">Pathis auto-assigned.</span>`;
+        displayDiv.innerHTML = selectedSK === 'VCD' ? `<span style="color: var(--danger);">VCD: Pathi A is N/A. B & C auto-assigned.</span>` : `<span style="color: var(--primary);">Pathis auto-assigned (Load Balanced).</span>`;
     }
 
+    // UPDATED: Load Balancing Logic
     function getAutoPathis(date) {
         let busyPathis = new Set();
         schedule.forEach(entry => {
-            if(entry.date === date) { if(entry.pathiA!=="N/A") busyPathis.add(entry.pathiA); if(entry.pathiB!=="N/A") busyPathis.add(entry.pathiB); if(entry.pathiC!=="N/A") busyPathis.add(entry.pathiC); }
+            if(entry.date === date) {
+                if(entry.pathiA!=="N/A") busyPathis.add(entry.pathiA);
+                if(entry.pathiB!=="N/A") busyPathis.add(entry.pathiB);
+                if(entry.pathiC!=="N/A") busyPathis.add(entry.pathiC);
+            }
         });
-        let available = pathiList.filter(p => !busyPathis.has(p)); let assigned = [];
-        for(let i=0; i<3; i++) {
-            let found = false;
-            for(let k=0; k<pathiList.length; k++) {
-                let checkIdx = (pathiRotationIndex + k) % pathiList.length; let candidate = pathiList[checkIdx];
-                if (available.includes(candidate) && !assigned.includes(candidate)) {
-                    assigned.push(candidate); pathiRotationIndex = (checkIdx + 1) % pathiList.length; found = true; break;
+
+        // 1. Calculate Global Assignment Counts
+        const counts = {};
+        pathiList.forEach(p => counts[p] = 0);
+        schedule.forEach(e => {
+            if(e.pathiA !== "N/A" && counts[e.pathiA] !== undefined) counts[e.pathiA]++;
+            if(e.pathiB !== "N/A" && counts[e.pathiB] !== undefined) counts[e.pathiB]++;
+            if(e.pathiC !== "N/A" && counts[e.pathiC] !== undefined) counts[e.pathiC]++;
+        });
+
+        let available = pathiList.filter(p => !busyPathis.has(p));
+        let assigned = [];
+
+        for (let i = 0; i < 3; i++) {
+            if (available.length === 0) {
+                assigned.push("UNAVAILABLE");
+                continue;
+            }
+
+            // 2. Find Minimum Count among available
+            let minCount = Math.min(...available.map(p => counts[p]));
+
+            // 3. Filter to candidates with min count
+            let candidates = available.filter(p => counts[p] === minCount);
+
+            // 4. Tie-Breaker: Use rotation index to ensure spread among equals
+            let selected = null;
+            
+            // Iterate from rotation index to find a candidate
+            for (let k = 0; k < pathiList.length; k++) {
+                let checkIdx = (pathiRotationIndex + k) % pathiList.length;
+                let candidateAtPathiList = pathiList[checkIdx];
+                if (candidates.includes(candidateAtPathiList)) {
+                    selected = candidateAtPathiList;
+                    pathiRotationIndex = (checkIdx + 1) % pathiList.length; // Update rotation
+                    break;
                 }
             }
-            if(!found) assigned.push("UNAVAILABLE");
+            
+            // Fallback if rotation index logic fails (shouldn't happen)
+            if (!selected) selected = candidates[0];
+
+            assigned.push(selected);
+            
+            // Remove from available for next slot
+            available = available.filter(p => p !== selected);
         }
+        
         return { a: assigned[0], b: assigned[1], c: assigned[2] };
     }
 
@@ -1194,8 +1256,15 @@
             if (skConflict) { if(!isBulk) showToast(`Conflict: ${sk} busy at ${skConflict.placeName}`, "error"); return false; }
         }
 
-        let pathis = isVCD ? { a: "N/A", b: "N/A", c: "N/A" } : 
-            (editingIndex > -1 && schedule[editingIndex].sk !== 'VCD' ? { a: schedule[editingIndex].pathiA, b: schedule[editingIndex].pathiB, c: schedule[editingIndex].pathiC } : getAutoPathis(date));
+        let pathis;
+        if (isVCD) {
+            let auto = getAutoPathis(date);
+            pathis = { a: "N/A", b: auto.b, c: auto.c };
+        } else {
+             pathis = (editingIndex > -1 && schedule[editingIndex].sk !== 'VCD') 
+                ? { a: schedule[editingIndex].pathiA, b: schedule[editingIndex].pathiB, c: schedule[editingIndex].pathiC } 
+                : getAutoPathis(date);
+        }
 
         const entryData = { placeId, placeName: placeObj.name, dayTime: `${placeObj.day} ${placeObj.time}`, date, sk, pathiA: pathis.a, pathiB: pathis.b, pathiC: pathis.c, shabad, bani, book };
         
