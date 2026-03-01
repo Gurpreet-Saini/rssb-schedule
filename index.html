@@ -122,6 +122,12 @@
             color: #bfdbfe;
         }
 
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            z-index: 1;
+        }
+
         /* Buttons */
         button {
             font-family: 'Poppins', sans-serif;
@@ -620,6 +626,8 @@
             max-width: 600px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.2);
             animation: fadeIn 0.3s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .modal-header {
             display: flex;
@@ -662,6 +670,8 @@
 
             .fab-feedback { bottom: 15px; left: 15px; }
             .fab-feedback button { padding: 10px 20px; font-size: 0.9rem; }
+
+            .header-actions { width: 100%; justify-content: center; }
         }
 
         /* Print Styles */
@@ -685,6 +695,9 @@
                 <h1>Radha Soami Satsang Beas</h1>
                 <div class="subtitle">Satsang Schedule Manager</div>
             </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-primary" onclick="openReleaseNotesModal()" style="background: #000; color: #fff;"><i class="fas fa-history"></i> What's New</button>
         </div>
     </div>
 
@@ -952,6 +965,31 @@
     </div>
 </div>
 
+<!-- Release Notes Modal -->
+<div id="releaseNotesModal" class="modal-overlay" onclick="closeReleaseNotesModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2 style="margin:0; border:none;"><i class="fas fa-rocket"></i> What's New</h2>
+            <button class="modal-close" onclick="closeReleaseNotesModal()">&times;</button>
+        </div>
+        <div style="line-height: 1.6; color: #475569;">
+            <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.2 (Current)</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Data Persistence Update</strong>: Schedule data is no longer saved to the browser. Only the Master Lists (Places, SKs, Pathis) are saved. Schedule resets on page refresh.</li>
+                </ul>
+            </div>
+            <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.1</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Fixed Pattern Assignment</strong>: Random shuffle algorithm ensures A, B, C are not consecutive.</li>
+                    <li><strong>UI Polish</strong>: "What's New" button updated.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
@@ -961,7 +999,6 @@
     let skList = []; 
     let pathiList = []; 
     let schedule = []; 
-    let pathiRotationIndex = 0; 
     let editingIndex = -1; 
 
     // --- TOAST FUNCTION ---
@@ -980,14 +1017,13 @@
     // --- Initialization ---
     function initDemo() {
         populateDateDropdowns();
-        if(localStorage.getItem('satsangData')) {
+        if(localStorage.getItem('satsangConfig')) {
             try {
-                const data = JSON.parse(localStorage.getItem('satsangData'));
+                const data = JSON.parse(localStorage.getItem('satsangConfig'));
                 places = data.places || [];
                 skList = data.skList || [];
                 pathiList = data.pathiList || [];
-                schedule = data.schedule || [];
-                pathiRotationIndex = data.pathiRotationIndex || 0;
+                
                 if(data.dates) {
                     document.getElementById('startMonth').value = data.dates.startMonth;
                     document.getElementById('startYear').value = data.dates.startYear;
@@ -997,6 +1033,10 @@
                 }
             } catch(e) { console.error(e); setDefaultData(); }
         } else { setDefaultData(); }
+        
+        // Always start with empty schedule
+        schedule = []; 
+        
         refreshUI();
     }
     
@@ -1043,17 +1083,32 @@
         pathiList = ["MOHAN LAL-1", "MOHAN LAL-2", "SANJIV BHOOD", "SHUSHMA BHOOD", "NEHA BHOOD", "SINGH RAJ", "BABLI", "SARITA", "PREETI", "MAM SINGH", "SEETA SHARMA", "JASWINDER KAUR"];
     }
 
+    // UPDATED: Save ONLY configuration data (Places, SKs, Pathis)
     function saveToLocalStorage() {
-        const data = { places, skList, pathiList, schedule, pathiRotationIndex, dates: { startMonth: document.getElementById('startMonth').value, startYear: document.getElementById('startYear').value, endMonth: document.getElementById('endMonth').value, endYear: document.getElementById('endYear').value } };
-        localStorage.setItem('satsangData', JSON.stringify(data));
+        const data = { 
+            places, 
+            skList, 
+            pathiList, 
+            dates: { 
+                startMonth: document.getElementById('startMonth').value, 
+                startYear: document.getElementById('startYear').value, 
+                endMonth: document.getElementById('endMonth').value, 
+                endYear: document.getElementById('endYear').value 
+            } 
+        };
+        localStorage.setItem('satsangConfig', JSON.stringify(data));
     }
 
     function clearAllData() {
-        if(confirm("Are you sure you want to delete ALL data (Places, SKs, Pathis, Schedule)?")) {
-            places = []; skList = []; pathiList = []; schedule = []; pathiRotationIndex = 0; editingIndex = -1;
+        if(confirm("Are you sure you want to delete ALL configuration data (Places, SKs, Pathis)?\n\n(The current schedule on screen will also be cleared)")) {
+            places = []; 
+            skList = []; 
+            pathiList = []; 
+            schedule = []; // Clear screen immediately
+            editingIndex = -1;
             saveToLocalStorage();
             refreshUI();
-            showToast("All data has been erased.", "info");
+            showToast("Configuration data erased.", "info");
         }
     }
 
@@ -1140,6 +1195,7 @@
         const placeSelect = document.getElementById('schedulePlace'); const skSelect = document.getElementById('selSK');
         placeSelect.innerHTML = `<option value="">-- Select Place --</option>` + 
             places.map(p => `<option value="${p.id}">${p.name} (${p.day} - ${p.time})</option>`).join('');
+
         let sortedSK = [...skList].sort((a,b) => { if(a === 'VCD') return -1; if(b === 'VCD') return 1; return a.localeCompare(b); });
         skSelect.innerHTML = `<option value="">-- Select SK --</option>` + sortedSK.map(s => `<option value="${s}">${s}</option>`).join('');
     }
@@ -1170,7 +1226,6 @@
         displayDiv.innerHTML = selectedSK === 'VCD' ? `<span style="color: var(--danger);">VCD: Pathi A is N/A. B & C auto-assigned.</span>` : `<span style="color: var(--primary);">Pathis auto-assigned (Load Balanced).</span>`;
     }
 
-    // UPDATED: Load Balancing Logic
     function getAutoPathis(date) {
         let busyPathis = new Set();
         schedule.forEach(entry => {
@@ -1181,53 +1236,36 @@
             }
         });
 
-        // 1. Calculate Global Assignment Counts
-        const counts = {};
-        pathiList.forEach(p => counts[p] = 0);
-        schedule.forEach(e => {
-            if(e.pathiA !== "N/A" && counts[e.pathiA] !== undefined) counts[e.pathiA]++;
-            if(e.pathiB !== "N/A" && counts[e.pathiB] !== undefined) counts[e.pathiB]++;
-            if(e.pathiC !== "N/A" && counts[e.pathiC] !== undefined) counts[e.pathiC]++;
-        });
-
         let available = pathiList.filter(p => !busyPathis.has(p));
         let assigned = [];
 
+        const globalCounts = {};
+        pathiList.forEach(p => globalCounts[p] = 0);
+        schedule.forEach(e => {
+            if(e.pathiA !== "N/A" && globalCounts[e.pathiA] !== undefined) globalCounts[e.pathiA]++;
+            if(e.pathiB !== "N/A" && globalCounts[e.pathiB] !== undefined) globalCounts[e.pathiB]++;
+            if(e.pathiC !== "N/A" && globalCounts[e.pathiC] !== undefined) globalCounts[e.pathiC]++;
+        });
+
+        let localCounts = JSON.parse(JSON.stringify(globalCounts));
+
         for (let i = 0; i < 3; i++) {
-            if (available.length === 0) {
-                assigned.push("UNAVAILABLE");
-                continue;
+            if (available.length === 0) { assigned.push("UNAVAILABLE"); continue; }
+            
+            let minCount = Math.min(...available.map(p => localCounts[p]));
+            let candidates = available.filter(p => localCounts[p] === minCount);
+            
+            // Fisher-Yates Shuffle
+            for (let k = candidates.length - 1; k > 0; k--) {
+                const j = Math.floor(Math.random() * (k + 1));
+                [candidates[k], candidates[j]] = [candidates[j], candidates[k]];
             }
 
-            // 2. Find Minimum Count among available
-            let minCount = Math.min(...available.map(p => counts[p]));
-
-            // 3. Filter to candidates with min count
-            let candidates = available.filter(p => counts[p] === minCount);
-
-            // 4. Tie-Breaker: Use rotation index to ensure spread among equals
-            let selected = null;
-            
-            // Iterate from rotation index to find a candidate
-            for (let k = 0; k < pathiList.length; k++) {
-                let checkIdx = (pathiRotationIndex + k) % pathiList.length;
-                let candidateAtPathiList = pathiList[checkIdx];
-                if (candidates.includes(candidateAtPathiList)) {
-                    selected = candidateAtPathiList;
-                    pathiRotationIndex = (checkIdx + 1) % pathiList.length; // Update rotation
-                    break;
-                }
-            }
-            
-            // Fallback if rotation index logic fails (shouldn't happen)
-            if (!selected) selected = candidates[0];
-
+            let selected = candidates[0];
             assigned.push(selected);
-            
-            // Remove from available for next slot
+            localCounts[selected]++;
             available = available.filter(p => p !== selected);
         }
-        
         return { a: assigned[0], b: assigned[1], c: assigned[2] };
     }
 
@@ -1272,12 +1310,14 @@
         else { if (existingIndex > -1) { schedule[existingIndex] = entryData; if(!isBulk) showToast("Overwritten.", "info"); }
             else { schedule.push(entryData); if(!isBulk) showToast("Saved!"); }
         }
-        saveToLocalStorage();
+        
+        // NOT calling saveToLocalStorage() here so schedule is not persisted
+        
         if(!isBulk) { renderPreviewTable(); document.getElementById('selSK').value=""; document.getElementById('txtShabad').value=""; document.getElementById('txtBani').value=""; document.getElementById('txtBook').value=""; updateDateList(); document.getElementById('autoPathiDisplay').innerText = "Select SK."; }
         return true;
     }
 
-    function deleteEntry(index) { if(confirm("Delete?")) { if (editingIndex === index) editingIndex = -1; schedule.splice(index, 1); saveToLocalStorage(); renderPreviewTable(); showToast("Deleted.", "error"); updateDateList(); } }
+    function deleteEntry(index) { if(confirm("Delete?")) { if (editingIndex === index) editingIndex = -1; schedule.splice(index, 1); renderPreviewTable(); showToast("Deleted.", "error"); updateDateList(); } }
 
     function processBulkUpload() {
         const text = document.getElementById('bulkText').value; if(!text) return;
@@ -1293,7 +1333,7 @@
                 } else errors.push(`L${idx+1}: Place?`);
             }
         });
-        document.getElementById('bulkMsg').innerText = `Processed ${count}. ${errors.join(' | ')}`; saveToLocalStorage(); refreshUI(); renderPreviewTable();
+        document.getElementById('bulkMsg').innerText = `Processed ${count}. ${errors.join(' | ')}`; refreshUI(); renderPreviewTable();
     }
 
     // --- View & Export ---
@@ -1360,6 +1400,10 @@
         window.location.href = `mailto:sainigp20@gmail.com?subject=${encodeURIComponent(`[Schedule] ${subject} - ${name}`)}&body=${encodeURIComponent(`Name: ${name}\n\n${message}`)}`;
         closeFeedbackModal();
     }
+    
+    // --- Release Notes Logic ---
+    function openReleaseNotesModal() { document.getElementById('releaseNotesModal').classList.add('active'); }
+    function closeReleaseNotesModal(e) { if(!e || e.target === e.currentTarget) document.getElementById('releaseNotesModal').classList.remove('active'); }
 
     function downloadCSV() {
         if(schedule.length === 0) { showToast("No data.", "error"); return; }
@@ -1376,6 +1420,7 @@
 
     function formatDate(d) { return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getFullYear()).substr(2,2)}`; }
 
+    // Start the app
     initDemo();
 </script>
 </body>
