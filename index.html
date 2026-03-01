@@ -53,7 +53,7 @@
             border: 1px solid var(--glass-border);
             backdrop-filter: blur(20px);
             position: relative;
-            padding-bottom: 100px; /* Space for floating btn */
+            padding-bottom: 100px;
         }
 
         /* Header Section */
@@ -116,12 +116,6 @@
             opacity: 0.9;
             margin-top: 5px;
             color: #bfdbfe;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 15px;
-            z-index: 1;
         }
 
         /* Buttons */
@@ -225,11 +219,10 @@
             padding-top: 30px;
             border-top: 1px solid var(--border);
             display: flex;
-            justify-content: space-between; /* Default: Back on left, others on right */
+            justify-content: space-between;
             align-items: center;
         }
         .nav-actions.right-only { justify-content: flex-end; }
-        /* Removed left-only as we won't need it for ViewTab anymore */
 
         /* Date Selector Card */
         .date-selector-card {
@@ -277,10 +270,9 @@
         }
 
         .setup-section {
-            margin-bottom: 40px; /* Increased gap between sections */
+            margin-bottom: 40px;
         }
 
-        /* Form Row - Fix for alignment and overlap */
         .form-row {
             display: flex;
             flex-wrap: wrap;
@@ -292,13 +284,12 @@
             border-radius: 16px;
             transition: box-shadow 0.3s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            align-items: flex-end; /* Align items to bottom */
+            align-items: flex-end;
         }
         
         .form-row:hover { 
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
             border-color: #bfdbfe;
-            /* Removed transform to prevent overlap */
         }
 
         .form-group { 
@@ -308,16 +299,12 @@
             flex-direction: column;
         }
         
-        /* Specific layout for simple Input + Button rows (SK/Pathi) */
         .simple-add-row {
             display: flex;
             gap: 15px;
             align-items: flex-end;
         }
-        .simple-add-row .form-group {
-            flex: 1;
-            margin-bottom: 0;
-        }
+        .simple-add-row .form-group { flex: 1; margin-bottom: 0; }
 
         .form-group label {
             display: block;
@@ -652,14 +639,12 @@
             .header { padding: 20px; flex-direction: column; text-align: center; }
             .header-brand { flex-direction: column; gap: 15px; }
             .title-block h1 { font-size: 1.5rem; }
-            .header-actions { width: 100%; justify-content: center; } /* Centered actions if any remain */
 
             .tabs { padding: 10px 10px 0; gap: 5px; overflow-x: auto; justify-content: flex-start; }
             .tab-link { padding: 10px 15px; font-size: 0.9rem; white-space: nowrap; }
 
             .tab-content { padding: 20px; }
             
-            /* Stack form elements vertically */
             .form-row { flex-direction: column; gap: 15px; padding: 20px; }
             .simple-add-row { flex-direction: column; width: 100%; }
             .simple-add-row button { width: 100%; }
@@ -669,7 +654,6 @@
 
             .nav-actions { flex-direction: column; gap: 15px; }
             .btn-nav { width: 100%; min-width: unset; }
-            /* Force buttons to stack vertically on mobile within nav-actions */
             .nav-actions.right-only, .nav-actions { flex-direction: column; align-items: stretch; }
 
             .fab-feedback { bottom: 15px; left: 15px; }
@@ -698,7 +682,6 @@
                 <div class="subtitle">Satsang Schedule Manager</div>
             </div>
         </div>
-        <!-- Export Button Removed from here -->
     </div>
 
     <!-- Navigation Tabs -->
@@ -757,7 +740,6 @@
 
         <div class="setup-section">
             <h2><i class="fas fa-user-tie"></i> Satsang Karta's</h2>
-            <!-- Used simple-add-row for better alignment -->
             <div class="simple-add-row">
                 <div class="form-group">
                     <label>Add Name</label>
@@ -925,7 +907,6 @@
         <div class="table-container" id="scheduleTable"></div>
 
         <!-- Navigation Buttons -->
-        <!-- Default justify-content: space-between puts Back on left, Export on right -->
         <div class="nav-actions">
             <button class="btn-nav back" onclick="goToTab('ScheduleTab')"><i class="fas fa-arrow-left"></i> Back: Schedule</button>
             <button class="btn-success" onclick="downloadCSV()"><i class="fas fa-file-excel"></i> Export</button>
@@ -1121,8 +1102,11 @@
     }
     function removePathi(name) { pathiList = pathiList.filter(p => p !== name); saveToLocalStorage(); refreshUI(); }
 
+    // UPDATED: Added Time to the preview badge
     function refreshUI() {
-        document.getElementById('placeList').innerHTML = places.map(p => `<div class="badge place"><i class="fas fa-map-marker-alt"></i> <b>${p.name}</b> (${p.day}) <span class="close-btn" onclick="removePlace(${p.id})">&times;</span></div>`).join('');
+        document.getElementById('placeList').innerHTML = places.map(p => 
+            `<div class="badge place"><i class="fas fa-map-marker-alt"></i> <b>${p.name}</b> (${p.day} - ${p.time}) <span class="close-btn" onclick="removePlace(${p.id})">&times;</span></div>`
+        ).join('');
         document.getElementById('skList').innerHTML = skList.map(s => `<div class="badge sk"><i class="fas fa-user"></i> ${s} <span class="close-btn" onclick="removeSK('${s}')">&times;</span></div>`).join('');
         document.getElementById('pathiList').innerHTML = pathiList.map(p => `<div class="badge pathi"><i class="fas fa-user-friends"></i> ${p} <span class="close-btn" onclick="removePathi('${p}')">&times;</span></div>`).join('');
         populateScheduleDropdowns();
