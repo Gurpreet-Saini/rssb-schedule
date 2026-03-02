@@ -922,21 +922,6 @@
     <!-- View Tab -->
     <div id="ViewTab" class="tab-content">
         
-        <!-- Date Selection -->
-        <div class="date-selector-card">
-             <div style="display:flex; align-items:center; gap:10px;">
-                <i class="fas fa-calendar-alt" style="font-size: 1.5rem; color: var(--primary);"></i>
-                <span style="font-weight: 700; color: var(--primary-dark); font-size: 1rem;">Dashboard Period</span>
-            </div>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                <select id="startMonthView" onchange="syncDates(this)"></select>
-                <select id="startYearView" onchange="syncDates(this)"></select>
-                <span style="font-weight:600; color:#64748b;">to</span>
-                <select id="endMonthView" onchange="syncDates(this)"></select>
-                <select id="endYearView" onchange="syncDates(this)"></select>
-            </div>
-        </div>
-
         <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="border:none; margin:0;"><i class="fas fa-chart-pie"></i> Analytics Dashboard</h2>
             <button class="btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
@@ -1018,13 +1003,9 @@
                 <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.3 (Current)</h3>
                 <ul style="margin: 0; padding-left: 20px;">
                     <li><strong>Baal Satsang Support</strong>: Added option to enable Baal Satsang for places, which assigns an additional Pathi-D.</li>
+                    <li><strong>VCD Logic Update</strong>: If Baal Satsang is active with VCD, Pathi-D is assigned (along with B & C).</li>
                     <li><strong>Full Column Names</strong>: Updated tables and exports to use full names (Satsang Karta, Pathi-A, etc.) for clarity.</li>
-                </ul>
-            </div>
-            <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.2</h3>
-                <ul style="margin: 0; padding-left: 20px;">
-                    <li>Data Persistence Update: Schedule resets on refresh, Master Lists saved.</li>
+                    <li><strong>UI Simplification</strong>: Date selection moved to Schedule tab only for better workflow.</li>
                 </ul>
             </div>
         </div>
@@ -1073,7 +1054,6 @@
                     document.getElementById('startYear').value = data.dates.startYear;
                     document.getElementById('endMonth').value = data.dates.endMonth;
                     document.getElementById('endYear').value = data.dates.endYear;
-                    syncDates();
                 }
             } catch(e) { console.error(e); setDefaultData(); }
         } else { setDefaultData(); }
@@ -1096,24 +1076,6 @@
         document.getElementById('endMonth').innerHTML = monthHtml;
         document.getElementById('startYear').innerHTML = yearHtml;
         document.getElementById('endYear').innerHTML = yearHtml;
-        document.getElementById('startMonthView').innerHTML = monthHtml;
-        document.getElementById('endMonthView').innerHTML = monthHtml;
-        document.getElementById('startYearView').innerHTML = yearHtml;
-        document.getElementById('endYearView').innerHTML = yearHtml;
-    }
-    
-    function syncDates(source) {
-        document.getElementById('startMonthView').value = document.getElementById('startMonth').value;
-        document.getElementById('startYearView').value = document.getElementById('startYear').value;
-        document.getElementById('endMonthView').value = document.getElementById('endMonth').value;
-        document.getElementById('endYearView').value = document.getElementById('endYear').value;
-        if(source && source.id.includes('View')) {
-            document.getElementById('startMonth').value = document.getElementById('startMonthView').value;
-            document.getElementById('startYear').value = document.getElementById('startYearView').value;
-            document.getElementById('endMonth').value = document.getElementById('endMonthView').value;
-            document.getElementById('endYear').value = document.getElementById('endYearView').value;
-        }
-        handleDateChange();
     }
 
     function setDefaultData() {
@@ -1285,12 +1247,17 @@
         
         if (!selectedSK) { displayDiv.innerText = "Please select an SK."; return; }
         
-        let pathiCount = placeObj && placeObj.baalSatsang ? 4 : 3;
-        if(selectedSK === 'VCD') pathiCount = placeObj && placeObj.baalSatsang ? 3 : 2; // VCD removes Pathi A
-
-        displayDiv.innerHTML = selectedSK === 'VCD' 
-            ? `<span style="color: var(--danger);">VCD: Pathi A is N/A. ${pathiCount} Pathis auto-assigned.</span>` 
-            : `<span style="color: var(--primary);">${pathiCount} Pathis auto-assigned (Load Balanced).</span>`;
+        if(selectedSK === 'VCD') {
+            let msg = "VCD: Pathi A is N/A. ";
+            if(placeObj && placeObj.baalSatsang) msg += "Pathis B, C, D will be assigned.";
+            else msg += "Pathis B, C will be assigned.";
+            displayDiv.innerHTML = `<span style="color: var(--danger);">${msg}</span>`;
+        } else {
+            let msg = "Pathis A, B, C";
+            if(placeObj && placeObj.baalSatsang) msg += ", D";
+            msg += " will be assigned.";
+            displayDiv.innerHTML = `<span style="color: var(--primary);">${msg}</span>`;
+        }
     }
 
     function getAutoPathis(date, count) {
@@ -1381,7 +1348,7 @@
         // Normal: A, B, C (3)
         // Baal Satsang: A, B, C, D (4)
         // VCD: N/A, B, C (2)
-        // VCD + Baal: N/A, B, C, D (3)
+        // VCD + Baal: N/A, B, C, D (3 pathis needed)
         
         let pathis;
         let neededCount = isBaalSatsang ? 4 : 3;
@@ -1532,9 +1499,14 @@
     }
 
     function calculateVacantDates() {
-        const startMonth = parseInt(document.getElementById('startMonthView').value); const startYear = parseInt(document.getElementById('startYearView').value);
-        const endMonth = parseInt(document.getElementById('endMonthView').value); const endYear = parseInt(document.getElementById('endYearView').value);
-        let startDate = new Date(startYear, startMonth, 1); let endDate = new Date(endYear, endMonth + 1, 0);
+        // Use the Schedule Tab inputs for calculation
+        const startMonth = parseInt(document.getElementById('startMonth').value); 
+        const startYear = parseInt(document.getElementById('startYear').value);
+        const endMonth = parseInt(document.getElementById('endMonth').value); 
+        const endYear = parseInt(document.getElementById('endYear').value);
+        
+        let startDate = new Date(startYear, startMonth, 1); 
+        let endDate = new Date(endYear, endMonth + 1, 0);
         const dayMap = {'Sunday':0, 'Monday':1, 'Tuesday':2, 'Wednesday':3, 'Thursday':4, 'Friday':5, 'Saturday':6};
         let vacantHtml = ""; let count = 0;
         const scheduleMap = {}; schedule.forEach(e => scheduleMap[`${e.placeId}_${e.date}`] = true);
