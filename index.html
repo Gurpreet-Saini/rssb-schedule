@@ -304,7 +304,7 @@
 
         .form-group { 
             flex: 1; 
-            min-width: 200px;
+            min-width: 150px;
             display: flex;
             flex-direction: column;
         }
@@ -342,6 +342,38 @@
             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
             background: white;
         }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+            margin-top: 5px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(22px); }
 
         /* Badges */
         .list-container {
@@ -396,6 +428,7 @@
             border-bottom: 1px solid #f1f5f9;
             padding: 14px 18px;
             text-align: left;
+            white-space: nowrap;
         }
         
         tbody tr { transition: background 0.2s; }
@@ -748,6 +781,14 @@
                         <option value="06:00 PM">06:00 PM</option>
                     </select>
                 </div>
+                <!-- Baal Satsang Toggle -->
+                <div class="form-group" style="min-width: 110px; text-align: center;">
+                    <label style="display:block;">Baal Satsang</label>
+                    <label class="switch">
+                        <input type="checkbox" id="placeBaalSatsang" onchange="handleBaalSatsangToggle(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
                 <div class="form-group" style="min-width: 100px;">
                     <button class="btn-primary" onclick="addPlace()" style="width:100%"><i class="fas fa-plus"></i> Add</button>
                 </div>
@@ -974,16 +1015,16 @@
         </div>
         <div style="line-height: 1.6; color: #475569;">
             <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.2 (Current)</h3>
+                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.3 (Current)</h3>
                 <ul style="margin: 0; padding-left: 20px;">
-                    <li><strong>Data Persistence Update</strong>: Schedule data is no longer saved to the browser. Only the Master Lists (Places, SKs, Pathis) are saved. Schedule resets on page refresh.</li>
+                    <li><strong>Baal Satsang Support</strong>: Added option to enable Baal Satsang for places, which assigns an additional Pathi-D.</li>
+                    <li><strong>Full Column Names</strong>: Updated tables and exports to use full names (Satsang Karta, Pathi-A, etc.) for clarity.</li>
                 </ul>
             </div>
             <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.1</h3>
+                <h3 style="margin: 0 0 10px 0; color: var(--primary); font-size: 1.1rem;">Version 2.2</h3>
                 <ul style="margin: 0; padding-left: 20px;">
-                    <li><strong>Fixed Pattern Assignment</strong>: Random shuffle algorithm ensures A, B, C are not consecutive.</li>
-                    <li><strong>UI Polish</strong>: "What's New" button updated.</li>
+                    <li>Data Persistence Update: Schedule resets on refresh, Master Lists saved.</li>
                 </ul>
             </div>
         </div>
@@ -1024,6 +1065,9 @@
                 skList = data.skList || [];
                 pathiList = data.pathiList || [];
                 
+                // Upgrade places object if missing baalSatsang key
+                places = places.map(p => ({...p, baalSatsang: p.baalSatsang || false}));
+
                 if(data.dates) {
                     document.getElementById('startMonth').value = data.dates.startMonth;
                     document.getElementById('startYear').value = data.dates.startYear;
@@ -1074,16 +1118,15 @@
 
     function setDefaultData() {
         places = [
-            {id: 1, name: "RAIPUR RANI", day: "Sunday", time: "09:00 AM"},
-            {id: 2, name: "HANGOLA", day: "Sunday", time: "09:00 AM"},
-            {id: 3, name: "BHOOD", day: "Sunday", time: "09:00 AM"},
-            {id: 4, name: "BADHOUR", day: "Wednesday", time: "05:30 PM"}
+            {id: 1, name: "RAIPUR RANI", day: "Sunday", time: "09:00 AM", baalSatsang: false},
+            {id: 2, name: "HANGOLA", day: "Sunday", time: "09:00 AM", baalSatsang: false},
+            {id: 3, name: "BHOOD", day: "Sunday", time: "09:00 AM", baalSatsang: false},
+            {id: 4, name: "BADHOUR", day: "Wednesday", time: "05:30 PM", baalSatsang: false}
         ];
         skList = ["VCD", "JAIDEEP SHARMA", "P L DHIMAN"];
         pathiList = ["MOHAN LAL-1", "MOHAN LAL-2", "SANJIV BHOOD", "SHUSHMA BHOOD", "NEHA BHOOD", "SINGH RAJ", "BABLI", "SARITA", "PREETI", "MAM SINGH", "SEETA SHARMA", "JASWINDER KAUR"];
     }
 
-    // UPDATED: Save ONLY configuration data (Places, SKs, Pathis)
     function saveToLocalStorage() {
         const data = { 
             places, 
@@ -1104,7 +1147,7 @@
             places = []; 
             skList = []; 
             pathiList = []; 
-            schedule = []; // Clear screen immediately
+            schedule = []; 
             editingIndex = -1;
             saveToLocalStorage();
             refreshUI();
@@ -1136,15 +1179,26 @@
     }
 
     // --- Setup Functions ---
+    function handleBaalSatsangToggle(checkbox) {
+        if (checkbox.checked) {
+            if(!confirm("Along with the regular Satsang, Baal Satsang will also be organized.\n\nThis will assign an additional Pathi-D for this place. Continue?")) {
+                checkbox.checked = false;
+            }
+        }
+    }
+
     function addPlace() {
         let name = document.getElementById('placeName').value.toUpperCase().trim();
         let day = document.getElementById('placeDay').value;
         let time = document.getElementById('placeTime').value;
+        let baalSatsang = document.getElementById('placeBaalSatsang').checked;
+        
         if(name && day && time) {
             if(places.find(p => p.name === name && p.day === day && p.time === time)) { showToast("Exists.", "error"); return; }
-            places.push({ id: Date.now(), name, day, time });
+            places.push({ id: Date.now(), name, day, time, baalSatsang });
             saveToLocalStorage(); refreshUI();
             document.getElementById('placeName').value = "";
+            document.getElementById('placeBaalSatsang').checked = false;
             showToast("Added!");
         }
     }
@@ -1183,7 +1237,11 @@
 
     function refreshUI() {
         document.getElementById('placeList').innerHTML = places.map(p => 
-            `<div class="badge place"><i class="fas fa-map-marker-alt"></i> <b>${p.name}</b> (${p.day} - ${p.time}) <span class="close-btn" onclick="removePlace(${p.id})">&times;</span></div>`
+            `<div class="badge place">
+                <i class="fas fa-map-marker-alt"></i> <b>${p.name}</b> (${p.day} - ${p.time}) 
+                ${p.baalSatsang ? '<i class="fas fa-child" style="color:var(--accent);" title="Baal Satsang Active"></i>' : ''}
+                <span class="close-btn" onclick="removePlace(${p.id})">&times;</span>
+            </div>`
         ).join('');
         document.getElementById('skList').innerHTML = skList.map(s => `<div class="badge sk"><i class="fas fa-user"></i> ${s} <span class="close-btn" onclick="removeSK('${s}')">&times;</span></div>`).join('');
         document.getElementById('pathiList').innerHTML = pathiList.map(p => `<div class="badge pathi"><i class="fas fa-user-friends"></i> ${p} <span class="close-btn" onclick="removePathi('${p}')">&times;</span></div>`).join('');
@@ -1194,7 +1252,7 @@
     function populateScheduleDropdowns() {
         const placeSelect = document.getElementById('schedulePlace'); const skSelect = document.getElementById('selSK');
         placeSelect.innerHTML = `<option value="">-- Select Place --</option>` + 
-            places.map(p => `<option value="${p.id}">${p.name} (${p.day} - ${p.time})</option>`).join('');
+            places.map(p => `<option value="${p.id}">${p.name} (${p.day} - ${p.time}) ${p.baalSatsang ? '[Baal Satsang]' : ''}</option>`).join('');
 
         let sortedSK = [...skList].sort((a,b) => { if(a === 'VCD') return -1; if(b === 'VCD') return 1; return a.localeCompare(b); });
         skSelect.innerHTML = `<option value="">-- Select SK --</option>` + sortedSK.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -1222,17 +1280,27 @@
 
     function handleSKChange() {
         const skSelect = document.getElementById('selSK'); const displayDiv = document.getElementById('autoPathiDisplay'); const selectedSK = skSelect.value;
+        const placeId = parseInt(document.getElementById('schedulePlace').value);
+        const placeObj = places.find(p => p.id === placeId);
+        
         if (!selectedSK) { displayDiv.innerText = "Please select an SK."; return; }
-        displayDiv.innerHTML = selectedSK === 'VCD' ? `<span style="color: var(--danger);">VCD: Pathi A is N/A. B & C auto-assigned.</span>` : `<span style="color: var(--primary);">Pathis auto-assigned (Load Balanced).</span>`;
+        
+        let pathiCount = placeObj && placeObj.baalSatsang ? 4 : 3;
+        if(selectedSK === 'VCD') pathiCount = placeObj && placeObj.baalSatsang ? 3 : 2; // VCD removes Pathi A
+
+        displayDiv.innerHTML = selectedSK === 'VCD' 
+            ? `<span style="color: var(--danger);">VCD: Pathi A is N/A. ${pathiCount} Pathis auto-assigned.</span>` 
+            : `<span style="color: var(--primary);">${pathiCount} Pathis auto-assigned (Load Balanced).</span>`;
     }
 
-    function getAutoPathis(date) {
+    function getAutoPathis(date, count) {
         let busyPathis = new Set();
         schedule.forEach(entry => {
             if(entry.date === date) {
                 if(entry.pathiA!=="N/A") busyPathis.add(entry.pathiA);
                 if(entry.pathiB!=="N/A") busyPathis.add(entry.pathiB);
                 if(entry.pathiC!=="N/A") busyPathis.add(entry.pathiC);
+                if(entry.pathiD) busyPathis.add(entry.pathiD); // Handle Pathi D in busy check
             }
         });
 
@@ -1245,11 +1313,12 @@
             if(e.pathiA !== "N/A" && globalCounts[e.pathiA] !== undefined) globalCounts[e.pathiA]++;
             if(e.pathiB !== "N/A" && globalCounts[e.pathiB] !== undefined) globalCounts[e.pathiB]++;
             if(e.pathiC !== "N/A" && globalCounts[e.pathiC] !== undefined) globalCounts[e.pathiC]++;
+            if(e.pathiD && globalCounts[e.pathiD] !== undefined) globalCounts[e.pathiD]++;
         });
 
         let localCounts = JSON.parse(JSON.stringify(globalCounts));
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < count; i++) {
             if (available.length === 0) { assigned.push("UNAVAILABLE"); continue; }
             
             let minCount = Math.min(...available.map(p => localCounts[p]));
@@ -1266,7 +1335,15 @@
             localCounts[selected]++;
             available = available.filter(p => p !== selected);
         }
-        return { a: assigned[0], b: assigned[1], c: assigned[2] };
+        
+        // Return object mapping to A, B, C, D
+        // assigned array is in order A, B, C, D (or subset)
+        return { 
+            a: assigned[0] || "N/A", 
+            b: assigned[1] || "N/A", 
+            c: assigned[2] || "N/A", 
+            d: assigned[3] || "N/A" 
+        };
     }
 
     function editEntry(index) {
@@ -1282,11 +1359,17 @@
 
     function saveEntry(isBulk = false, bulkData = null) {
         let placeId, date, sk, shabad, bani, book;
-        if(isBulk) { placeId = bulkData.placeId; date = bulkData.date; sk = bulkData.sk; shabad = bulkData.shabad; bani = bulkData.bani; book = bulkData.book; }
-        else { placeId = parseInt(document.getElementById('schedulePlace').value); date = document.getElementById('scheduleDate').value; sk = document.getElementById('selSK').value; shabad = document.getElementById('txtShabad').value; bani = document.getElementById('txtBani').value; book = document.getElementById('txtBook').value; }
+        if(isBulk) { 
+            placeId = bulkData.placeId; date = bulkData.date; sk = bulkData.sk; shabad = bulkData.shabad; bani = bulkData.bani; book = bulkData.book; 
+        } else { 
+            placeId = parseInt(document.getElementById('schedulePlace').value); date = document.getElementById('scheduleDate').value; sk = document.getElementById('selSK').value; shabad = document.getElementById('txtShabad').value; bani = document.getElementById('txtBani').value; book = document.getElementById('txtBook').value; 
+        }
         if(!placeId || !date || !sk) { if(!isBulk) showToast("Missing fields", "error"); return false; }
 
-        const placeObj = places.find(p => p.id === placeId); const isVCD = (sk === 'VCD');
+        const placeObj = places.find(p => p.id === placeId); 
+        const isVCD = (sk === 'VCD');
+        const isBaalSatsang = placeObj.baalSatsang;
+        
         let existingIndex = schedule.findIndex(e => e.placeId === placeId && e.date === date);
         if (editingIndex > -1 && existingIndex > -1 && existingIndex !== editingIndex) { if(!isBulk) showToast("Conflict.", "error"); return false; }
         if (sk !== 'VCD') {
@@ -1294,26 +1377,72 @@
             if (skConflict) { if(!isBulk) showToast(`Conflict: ${sk} busy at ${skConflict.placeName}`, "error"); return false; }
         }
 
+        // Determine number of pathis needed
+        // Normal: A, B, C (3)
+        // Baal Satsang: A, B, C, D (4)
+        // VCD: N/A, B, C (2)
+        // VCD + Baal: N/A, B, C, D (3)
+        
         let pathis;
+        let neededCount = isBaalSatsang ? 4 : 3;
+        if (isVCD) neededCount = isBaalSatsang ? 3 : 2;
+
+        // Get auto assignments
+        let autoAssigned = getAutoPathis(date, neededCount);
+        
+        // Map assignments to correct slots
         if (isVCD) {
-            let auto = getAutoPathis(date);
-            pathis = { a: "N/A", b: auto.b, c: auto.c };
+            // A is N/A.
+            // If Baal Satsang: B, C, D needed (3 slots).
+            // If No Baal: B, C needed (2 slots).
+            // autoAssigned returns a, b, c, d.
+            
+            let slots = [];
+            slots.push("N/A"); // A
+            slots.push(autoAssigned.a); // B takes first available
+            slots.push(autoAssigned.b); // C takes second
+            if(isBaalSatsang) slots.push(autoAssigned.c); // D takes third
+            
+            pathis = { a: slots[0], b: slots[1], c: slots[2], d: slots[3] || "N/A" };
+
         } else {
-             pathis = (editingIndex > -1 && schedule[editingIndex].sk !== 'VCD') 
-                ? { a: schedule[editingIndex].pathiA, b: schedule[editingIndex].pathiB, c: schedule[editingIndex].pathiC } 
-                : getAutoPathis(date);
+            // Normal SK
+            // If Baal: A, B, C, D (4 slots)
+            // If No Baal: A, B, C (3 slots)
+            if (isBaalSatsang) {
+                pathis = { a: autoAssigned.a, b: autoAssigned.b, c: autoAssigned.c, d: autoAssigned.d };
+            } else {
+                pathis = { a: autoAssigned.a, b: autoAssigned.b, c: autoAssigned.c, d: "N/A" };
+            }
         }
 
-        const entryData = { placeId, placeName: placeObj.name, dayTime: `${placeObj.day} ${placeObj.time}`, date, sk, pathiA: pathis.a, pathiB: pathis.b, pathiC: pathis.c, shabad, bani, book };
+        const entryData = { 
+            placeId, placeName: placeObj.name, dayTime: `${placeObj.day} ${placeObj.time}`, baalSatsang: isBaalSatsang,
+            date, sk, 
+            pathiA: pathis.a, pathiB: pathis.b, pathiC: pathis.c, pathiD: pathis.d, 
+            shabad, bani, book 
+        };
         
-        if (editingIndex > -1) { schedule[editingIndex] = entryData; editingIndex = -1; document.getElementById("saveBtn").innerHTML = "<i class='fas fa-save'></i> Save"; document.getElementById("saveBtn").className = "btn-success"; if(!isBulk) showToast("Updated!", "info"); }
-        else { if (existingIndex > -1) { schedule[existingIndex] = entryData; if(!isBulk) showToast("Overwritten.", "info"); }
+        if (editingIndex > -1) { 
+            schedule[editingIndex] = entryData; 
+            editingIndex = -1; 
+            document.getElementById("saveBtn").innerHTML = "<i class='fas fa-save'></i> Save"; 
+            document.getElementById("saveBtn").className = "btn-success"; 
+            if(!isBulk) showToast("Updated!", "info"); 
+        } else { 
+            if (existingIndex > -1) { schedule[existingIndex] = entryData; if(!isBulk) showToast("Overwritten.", "info"); }
             else { schedule.push(entryData); if(!isBulk) showToast("Saved!"); }
         }
         
-        // NOT calling saveToLocalStorage() here so schedule is not persisted
-        
-        if(!isBulk) { renderPreviewTable(); document.getElementById('selSK').value=""; document.getElementById('txtShabad').value=""; document.getElementById('txtBani').value=""; document.getElementById('txtBook').value=""; updateDateList(); document.getElementById('autoPathiDisplay').innerText = "Select SK."; }
+        if(!isBulk) { 
+            renderPreviewTable(); 
+            document.getElementById('selSK').value=""; 
+            document.getElementById('txtShabad').value=""; 
+            document.getElementById('txtBani').value=""; 
+            document.getElementById('txtBook').value=""; 
+            updateDateList(); 
+            document.getElementById('autoPathiDisplay').innerText = "Select SK."; 
+        }
         return true;
     }
 
@@ -1341,19 +1470,50 @@
     function renderTable(targetId = 'scheduleTable', isPreview = false) {
         const container = document.getElementById(targetId); if(places.length === 0) { container.innerHTML = "<p>No places.</p>"; return; }
         schedule.sort((a,b) => { let dA = a.date.split('-').reverse().join('-'); let dB = b.date.split('-').reverse().join('-'); if(dA === dB) return a.placeName.localeCompare(b.placeName); return new Date(dA) - new Date(dB); });
+        
+        let headers = ["Date", "Place", "Satsang Karta", "Pathi-A", "Pathi-B", "Pathi-C", "Pathi-D", "Info"];
+        if(!isPreview) headers = ["DATE", "Satsang Karta", "Pathi-A", "Pathi-B", "Pathi-C", "Pathi-D", "SHABAD", "BANI", "BOOK"];
+
         let html = `<table>`;
+        
         if(isPreview) {
-            html += `<thead><tr><th>Date</th><th>Place</th><th>SK</th><th>A</th><th>B</th><th>C</th><th>Info</th><th>#</th></tr></thead><tbody>`;
+            html += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}<th>#</th></tr></thead><tbody>`;
             schedule.forEach((entry, index) => {
-                html += `<tr class="${entry.sk === 'VCD' ? "vcd-row" : ""}"><td>${entry.date}</td><td>${entry.placeName}</td><td>${entry.sk}</td><td>${entry.pathiA}</td><td>${entry.pathiB}</td><td>${entry.pathiC}</td><td>${entry.shabad}</td><td><button class="btn-primary" style="padding:2px 5px; font-size:10px; margin-right:2px;" onclick="editEntry(${index})"><i class="fas fa-edit"></i></button><button class="btn-danger" style="padding:2px 5px; font-size:10px;" onclick="deleteEntry(${index})"><i class="fas fa-trash"></i></button></td></tr>`;
-            }); html += `</tbody>`;
+                html += `<tr class="${entry.sk === 'VCD' ? "vcd-row" : ""}">
+                    <td>${entry.date}</td>
+                    <td>${entry.placeName} ${entry.baalSatsang ? '<i class="fas fa-child" style="color:var(--accent)"></i>' : ''}</td>
+                    <td>${entry.sk}</td>
+                    <td>${entry.pathiA}</td>
+                    <td>${entry.pathiB}</td>
+                    <td>${entry.pathiC}</td>
+                    <td>${entry.pathiD || '-'}</td>
+                    <td>${entry.shabad}</td>
+                    <td>
+                        <button class="btn-primary" style="padding:2px 5px; font-size:10px; margin-right:2px;" onclick="editEntry(${index})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-danger" style="padding:2px 5px; font-size:10px;" onclick="deleteEntry(${index})"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }); 
+            html += `</tbody>`;
         } else {
             let sortedPlaces = [...places].sort((a,b) => a.name.localeCompare(b.name) || a.day.localeCompare(b.day));
             sortedPlaces.forEach(placeObj => {
                 const placeEntries = schedule.filter(e => e.placeId === placeObj.id).sort((a,b) => new Date(a.date.split('-').reverse().join('-')) - new Date(b.date.split('-').reverse().join('-')));
-                html += `<thead><tr><td colspan="8" class="place-header">${placeObj.name} <span>${placeObj.day} : ${placeObj.time}</span></td></tr><tr><th>DATE</th><th>SK</th><th>A</th><th>B</th><th>C</th><th>SHABAD</th><th>BANI</th><th>BOOK</th></tr></thead><tbody>`;
-                if(placeEntries.length === 0) html += `<tr><td colspan="8" style="text-align:center; color:#999; padding:20px;">No entries.</td></tr>`;
-                else placeEntries.forEach(entry => { html += `<tr class="${entry.sk === 'VCD' ? "vcd-row" : ""}"><td>${entry.date}</td><td>${entry.sk || '-'}</td><td>${entry.pathiA || '-'}</td><td>${entry.pathiB || '-'}</td><td>${entry.pathiC || '-'}</td><td>${entry.shabad || '-'}</td><td>${entry.bani || '-'}</td><td>${entry.book || '-'}</td></tr>`; });
+                html += `<thead><tr><td colspan="9" class="place-header">${placeObj.name} <span>${placeObj.day} : ${placeObj.time}</span> ${placeObj.baalSatsang ? '<i class="fas fa-child"></i>' : ''}</td></tr><tr><th>DATE</th><th>Satsang Karta</th><th>Pathi-A</th><th>Pathi-B</th><th>Pathi-C</th><th>Pathi-D</th><th>SHABAD</th><th>BANI</th><th>BOOK</th></tr></thead><tbody>`;
+                if(placeEntries.length === 0) html += `<tr><td colspan="9" style="text-align:center; color:#999; padding:20px;">No entries.</td></tr>`;
+                else placeEntries.forEach(entry => { 
+                    html += `<tr class="${entry.sk === 'VCD' ? "vcd-row" : ""}">
+                        <td>${entry.date}</td>
+                        <td>${entry.sk || '-'}</td>
+                        <td>${entry.pathiA || '-'}</td>
+                        <td>${entry.pathiB || '-'}</td>
+                        <td>${entry.pathiC || '-'}</td>
+                        <td>${entry.pathiD || '-'}</td>
+                        <td>${entry.shabad || '-'}</td>
+                        <td>${entry.bani || '-'}</td>
+                        <td>${entry.book || '-'}</td>
+                    </tr>`; 
+                });
                 html += `</tbody>`;
             });
         }
@@ -1366,7 +1526,7 @@
         const maxSk = Math.max(...Object.values(skCounts), 1);
         document.getElementById('metricSKList').innerHTML = Object.entries(skCounts).map(([sk, c]) => `<div class="visual-item"><div class="visual-item-header"><span>${sk}</span><span>${c}</span></div><div class="progress-bg"><div class="progress-fill" style="width: ${(c/maxSk)*100}%;"></div></div></div>`).join('') || "None";
         const pathiCounts = {};
-        schedule.forEach(e => { if(e.pathiA!=="N/A") pathiCounts[e.pathiA] = (pathiCounts[e.pathiA]||0)+1; if(e.pathiB!=="N/A") pathiCounts[e.pathiB] = (pathiCounts[e.pathiB]||0)+1; if(e.pathiC!=="N/A") pathiCounts[e.pathiC] = (pathiCounts[e.pathiC]||0)+1; });
+        schedule.forEach(e => { if(e.pathiA!=="N/A") pathiCounts[e.pathiA] = (pathiCounts[e.pathiA]||0)+1; if(e.pathiB!=="N/A") pathiCounts[e.pathiB] = (pathiCounts[e.pathiB]||0)+1; if(e.pathiC!=="N/A") pathiCounts[e.pathiC] = (pathiCounts[e.pathiC]||0)+1; if(e.pathiD && e.pathiD!=="N/A") pathiCounts[e.pathiD] = (pathiCounts[e.pathiD]||0)+1; });
         const maxPathi = Math.max(...Object.values(pathiCounts), 1);
         document.getElementById('metricPathiList').innerHTML = Object.entries(pathiCounts).sort((a,b)=>b[1]-a[1]).map(([n, c]) => `<div class="visual-item"><div class="visual-item-header"><span>${n}</span><span>${c}</span></div><div class="progress-bg"><div class="progress-fill" style="width: ${(c/maxPathi)*100}%; background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div></div></div>`).join('') || "None";
     }
@@ -1409,9 +1569,9 @@
         if(schedule.length === 0) { showToast("No data.", "error"); return; }
         let csv = "data:text/csv;charset=utf-8,";
         [...places].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p => {
-            csv += `${p.name} (${p.day} ${p.time})\nDATE,SK,A,B,C,SHABAD,BANI,BOOK\n`;
+            csv += `${p.name} (${p.day} ${p.time})\nDATE,Satsang Karta,Pathi-A,Pathi-B,Pathi-C,Pathi-D,SHABAD,BANI,BOOK\n`;
             schedule.filter(e=>e.placeId===p.id).sort((a,b)=>new Date(a.date.split('-').reverse().join('-')) - new Date(b.date.split('-').reverse().join('-'))).forEach(e => {
-                csv += [e.date, e.sk, e.pathiA, e.pathiB, e.pathiC, e.shabad, e.bani, e.book].join(",")+"\n";
+                csv += [e.date, e.sk, e.pathiA, e.pathiB, e.pathiC, e.pathiD, e.shabad, e.bani, e.book].join(",")+"\n";
             }); csv += "\n";
         });
         const link = document.createElement("a"); link.href = encodeURI(csv); link.download="RSSB_Schedule.csv"; link.click(); link.remove();
